@@ -29,7 +29,11 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-On a phone, the form is on top and the report stacks under it. Buttons are at least 48px tall, and the page does not scroll sideways. On the same Wi-Fi, run `npm run dev -- --hostname 0.0.0.0` and visit `http://` plus your computer’s address plus `:3000`.
+On a phone, the form is on top and the report stacks under it. This is that layout with the sample loaded:
+
+![Sample report on a phone-width screen](docs/phone-layout.png)
+
+ Buttons are at least 48px tall, and the page does not scroll sideways. On the same Wi-Fi, run `npm run dev -- --hostname 0.0.0.0` and visit `http://` plus your computer’s address plus `:3000`.
 
 To check the report logic without the browser:
 

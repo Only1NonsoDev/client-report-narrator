@@ -65,10 +65,13 @@ h1, h2, h3, p, label, .lede, .footnote, .chip, .brand-name, .audit li, .client-l
 .skip {
   position: absolute;
   left: 12px;
-  top: -48px;
+  top: -64px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
   background: var(--blue);
   color: var(--cream-2);
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 999px;
   z-index: 20;
 }
