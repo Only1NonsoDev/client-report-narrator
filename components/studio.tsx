@@ -157,113 +157,117 @@ export function Studio() {
         <main>
           <section className="hero">
             <h1>Client Report Narrator</h1>
-            <p className="deck">
-              Paste one month of client numbers. Read what changed, why it matters, and what to do next. Every figure
-              comes from the sheet.
-            </p>
-            <p className="mode-detail">{modeDetail}</p>
+            <div className="hero-copy">
+              <p className="deck">
+                Paste one month of client numbers. Read what changed, why it matters, and what to do next. Every figure
+                comes from the sheet.
+              </p>
+              <p className="mode-detail">{modeDetail}</p>
+            </div>
           </section>
 
-          <form
-            id="sheet"
-            className="panel"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void writeReport({ csv, client, period });
-            }}
-          >
-            <h2>Your sheet</h2>
-            <p className="lede">One row per channel and metric. Leave a cell blank when you do not have the figure.</p>
-            <div className="actions">
-              <button type="button" className="secondary" onClick={loadSample} disabled={phase === "working"}>
-                Load sample
-              </button>
-              <label className="file">
-                Upload CSV
-                <input type="file" accept=".csv,text/csv,text/plain" onChange={onFile} />
-              </label>
-              <button type="submit" className="primary" disabled={phase === "working"}>
-                {phase === "working" ? "Writing…" : "Write the report"}
-              </button>
-            </div>
-            <div className="field">
-              <label htmlFor="client">Client</label>
-              <input
-                id="client"
-                type="text"
-                value={client}
-                onChange={(event) => setClient(event.target.value)}
-                placeholder="Client name"
-                autoComplete="off"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="period">Period</label>
-              <input
-                id="period"
-                type="text"
-                value={period}
-                onChange={(event) => setPeriod(event.target.value)}
-                placeholder="This month compared with last month"
-                autoComplete="off"
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="csv">Monthly numbers</label>
-              <textarea
-                id="csv"
-                className="source-box"
-                value={csv}
-                onChange={(event) => setCsv(event.target.value)}
-                placeholder={"channel,metric,last_month,this_month\nPaid search,Spend,3800,4200"}
-                spellCheck={false}
-              />
-              <p className="help">
-                Columns: channel, metric, last_month, this_month. Plain numbers are enough. A blank cell means that
-                figure is missing.
-              </p>
-            </div>
-          </form>
+          <div className="workspace">
+            <form
+              id="sheet"
+              className="panel"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void writeReport({ csv, client, period });
+              }}
+            >
+              <h2>Your sheet</h2>
+              <p className="lede">One row per channel and metric. Leave a cell blank when you do not have the figure.</p>
+              <div className="actions">
+                <button type="button" className="secondary" onClick={loadSample} disabled={phase === "working"}>
+                  Load sample
+                </button>
+                <label className="file">
+                  Upload CSV
+                  <input type="file" accept=".csv,text/csv,text/plain" onChange={onFile} />
+                </label>
+                <button type="submit" className="primary" disabled={phase === "working"}>
+                  {phase === "working" ? "Writing…" : "Write the report"}
+                </button>
+              </div>
+              <div className="field">
+                <label htmlFor="client">Client</label>
+                <input
+                  id="client"
+                  type="text"
+                  value={client}
+                  onChange={(event) => setClient(event.target.value)}
+                  placeholder="Client name"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="period">Period</label>
+                <input
+                  id="period"
+                  type="text"
+                  value={period}
+                  onChange={(event) => setPeriod(event.target.value)}
+                  placeholder="This month compared with last month"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="csv">Monthly numbers</label>
+                <textarea
+                  id="csv"
+                  className="source-box"
+                  value={csv}
+                  onChange={(event) => setCsv(event.target.value)}
+                  placeholder={"channel,metric,last_month,this_month\nPaid search,Spend,3800,4200"}
+                  spellCheck={false}
+                />
+                <p className="help">
+                  Columns: channel, metric, last_month, this_month. Plain numbers are enough. A blank cell means that
+                  figure is missing.
+                </p>
+              </div>
+            </form>
 
-          <section className="stage" aria-live="polite">
-            {error ? (
-              <p className="alert" role="alert">
-                {error}
-              </p>
-            ) : null}
-            {notice && phase !== "working" ? <p className={fallback ? "banner" : "note"}>{notice}</p> : null}
-            {stale ? (
-              <p className="note">The sheet has changed. Write the report again so every figure matches the rows above.</p>
-            ) : null}
-            {phase === "working" ? (
-              <p className="reading" role="status">
-                <span className="pulse" />
-                Reading the sheet…
-              </p>
-            ) : null}
-            {result && draft ? (
-              <ReportView report={result} draft={draft} onChange={setDraft} />
-            ) : phase === "working" ? null : (
-              <div className="empty">
-                <h2>The report sits under the sheet</h2>
-                <p className="lede">Load the sample, or paste your own month. The page stays empty until you write it.</p>
-                <div className="ghosts">
-                  <div>
-                    <strong>What changed</strong>
-                    <span>Each metric, last month and this month, in plain sentences.</span>
-                  </div>
-                  <div>
-                    <strong>Why it matters</strong>
-                    <span>Which move is the large one, using only these rows.</span>
-                  </div>
-                  <div>
-                    <strong>Next actions</strong>
-                    <span>A short list you can edit and copy. Missing figures stay missing.</span>
+            <section className="stage" aria-live="polite">
+              {error ? (
+                <p className="alert" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {notice && phase !== "working" ? <p className={fallback ? "banner" : "note"}>{notice}</p> : null}
+              {stale ? (
+                <p className="note">The sheet has changed. Write the report again so every figure matches the rows above.</p>
+              ) : null}
+              {phase === "working" ? (
+                <p className="reading" role="status">
+                  <span className="pulse" />
+                  Reading the sheet…
+                </p>
+              ) : null}
+              {result && draft ? (
+                <ReportView report={result} draft={draft} onChange={setDraft} />
+              ) : phase === "working" ? null : (
+                <div className="empty">
+                  <h2>The report shows up here</h2>
+                  <p className="lede">Load the sample, or paste your own month. The page stays empty until you write it.</p>
+                  <div className="ghosts">
+                    <div>
+                      <strong>What changed</strong>
+                      <span>Each metric, last month and this month, in plain sentences.</span>
+                    </div>
+                    <div>
+                      <strong>Why it matters</strong>
+                      <span>Which move is the large one, using only these rows.</span>
+                    </div>
+                    <div>
+                      <strong>Next actions</strong>
+                      <span>A short list you can edit and copy. Missing figures stay missing.</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          </div>
 
           <footer className="site-foot">
             <div>
