@@ -1,3 +1,4 @@
+**Live preview:** https://client-report-narrator-only1nonsodev.vercel.app
 # Client Report Narrator
 
 A marketer often has a spreadsheet of one month and a client who wants a paragraph, not a grid. This is a small web page for that job.
