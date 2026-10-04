@@ -34,7 +34,7 @@ On a phone, the form is on top and the report stacks under it. This is that layo
 
 ![Sample report on a phone-width screen](docs/phone-layout.png)
 
- Buttons are at least 48px tall, and the page does not scroll sideways. On the same Wi-Fi, run `npm run dev -- --hostname 0.0.0.0` and visit `http://` plus your computer’s address plus `:3000`.
+Buttons are at least 48px tall, and the page does not scroll sideways. On a laptop the same page puts the sheet on the left and the report on the right, with the shorter sections beside each other. It is still this address. On the same Wi-Fi, run `npm run dev -- --hostname 0.0.0.0` and visit `http://` plus your computer’s address plus `:3000`.
 
 To check the report logic without the browser:
 

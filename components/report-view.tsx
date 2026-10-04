@@ -74,32 +74,34 @@ export function ReportView({
       <p className="period-line">{report.periodLine}</p>
       {edited ? <span className="edited">Edited</span> : null}
 
-      <div className="field">
-        <label htmlFor="what-changed">What changed</label>
-        <textarea
-          id="what-changed"
-          className="editor"
-          value={draft.whatChanged}
-          onChange={(event) => onChange({ ...draft, whatChanged: event.target.value })}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="why">Why it matters</label>
-        <textarea
-          id="why"
-          className="editor"
-          value={draft.whyItMatters}
-          onChange={(event) => onChange({ ...draft, whyItMatters: event.target.value })}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="actions">Next actions</label>
-        <textarea
-          id="actions"
-          className="editor"
-          value={draft.nextActions}
-          onChange={(event) => onChange({ ...draft, nextActions: event.target.value })}
-        />
+      <div className="narrative">
+        <div className="field field-wide">
+          <label htmlFor="what-changed">What changed</label>
+          <textarea
+            id="what-changed"
+            className="editor"
+            value={draft.whatChanged}
+            onChange={(event) => onChange({ ...draft, whatChanged: event.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="why">Why it matters</label>
+          <textarea
+            id="why"
+            className="editor"
+            value={draft.whyItMatters}
+            onChange={(event) => onChange({ ...draft, whyItMatters: event.target.value })}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="actions">Next actions</label>
+          <textarea
+            id="actions"
+            className="editor"
+            value={draft.nextActions}
+            onChange={(event) => onChange({ ...draft, nextActions: event.target.value })}
+          />
+        </div>
       </div>
 
       <h3>Numbers from the sheet</h3>
