@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { SheetError } from "./csv";
+import { previewSheet, SheetError } from "./csv";
 import { inventedNumbers, percentPoints } from "./ground";
 import { modelReportProblem, parseModelReport, resolveReport } from "./model";
 import { narrateLocal } from "./narrate";
@@ -152,9 +152,22 @@ test("quoted channel names and header aliases parse", () => {
   assert.deepEqual(inventedNumbers(aliased.text, aliased.allowed), []);
 });
 
+test("a sheet preview lists rows and channels from the sample", () => {
+  const preview = previewSheet(SAMPLE_CSV);
+  const last = preview.rows[preview.rows.length - 1];
+  assert.equal(preview.rowCount, 9);
+  assert.deepEqual(preview.channels, ["Paid search", "Email", "Organic social"]);
+  assert.equal(last?.metric, "Impressions");
+  assert.equal(last?.lastMonth, null);
+  assert.equal(last?.thisMonth, 45200);
+});
+
 test("bad sheets are rejected in plain language", () => {
   assert.throws(() => narrateLocal("", "Northline Studio", "September compared with August"), SheetError);
-  assert.throws(() => narrateLocal("foo,bar\n1,2\n", "Northline Studio", "September compared with August"), /channel column/);
+  assert.throws(
+    () => narrateLocal("foo,bar\n1,2\n", "Northline Studio", "September compared with August"),
+    /channel, metric, last_month, and this_month/,
+  );
   assert.throws(
     () => narrateLocal("channel,metric,last_month,this_month\nEmail,Opens,10,soon\n", "Northline Studio", "September compared with August"),
     /not a number/,
