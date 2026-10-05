@@ -51,7 +51,7 @@ export function parseSheet(csv: string): Row[] {
 
   if (channelAt < 0 || metricAt < 0 || lastAt < 0 || currentAt < 0) {
     throw new SheetError(
-      "The sheet needs a channel column, a metric column, a last month column, and a this month column.",
+      "The sheet needs a channel column, a metric column, a last month column, and a this month column. Name them channel, metric, last_month, and this_month.",
     );
   }
 
@@ -79,6 +79,21 @@ export function parseSheet(csv: string): Row[] {
     throw new SheetError("The sheet needs a header row and at least one data row.");
   }
   return rows;
+}
+
+export type SheetPreview = {
+  rowCount: number;
+  channels: string[];
+  rows: Row[];
+};
+
+export function previewSheet(csv: string): SheetPreview {
+  const rows = parseSheet(csv);
+  const channels: string[] = [];
+  for (const row of rows) {
+    if (!channels.includes(row.channel)) channels.push(row.channel);
+  }
+  return { rowCount: rows.length, channels, rows };
 }
 
 function normHeader(value: string): string {
