@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
-import { ReportView, type Draft } from "@/components/report-view";
+import { ReviewView } from "@/components/report-view";
+import { EMPTY_CONTEXT, SECTIONS } from "@/lib/context";
 import { previewSheet, SheetError, type Row, type SheetPreview } from "@/lib/csv";
-import { SAMPLE_CLIENT, SAMPLE_CSV, SAMPLE_PERIOD } from "@/lib/sample";
-import type { ReportResponse } from "@/lib/types";
+import { SAMPLE_CLIENT, SAMPLE_CONTEXT, SAMPLE_CSV, SAMPLE_PERIOD } from "@/lib/sample";
+import type { ContextInput, ReviewResponse } from "@/lib/types";
 
-type Status = { mode: "demo" | "model"; model: string | null };
-type SheetInput = { csv: string; client: string; period: string };
+type SheetInput = { csv: string; client: string; period: string; context: ContextInput };
 type SheetProblemNotice = { label: string; message: string };
 type FocusRequest = { kind: "preview" | "problem"; n: number };
 
@@ -23,30 +23,13 @@ export function Studio() {
   const [showAllRows, setShowAllRows] = useState(false);
   const [fileProblem, setFileProblem] = useState<SheetProblemNotice | null>(null);
   const [revealProblem, setRevealProblem] = useState(false);
-  const [status, setStatus] = useState<Status | null>(null);
+  const [context, setContext] = useState<ContextInput>(EMPTY_CONTEXT);
   const [phase, setPhase] = useState<"idle" | "working" | "ready">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [result, setResult] = useState<ReportResponse | null>(null);
-  const [draft, setDraft] = useState<Draft | null>(null);
+  const [result, setResult] = useState<ReviewResponse | null>(null);
   const [generation, setGeneration] = useState(0);
   const [sheetFocus, setSheetFocus] = useState<FocusRequest | null>(null);
   const focusNonce = useRef(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/report")
-      .then((response) => response.json())
-      .then((data: Status) => {
-        if (!cancelled) setStatus(data);
-      })
-      .catch(() => {
-        if (!cancelled) setStatus({ mode: "demo", model: null });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (generation === 0) return;
@@ -64,25 +47,12 @@ export function Studio() {
     setSheetFocus({ kind, n: focusNonce.current });
   }
 
-  const fallback = Boolean(result && status?.mode === "model" && result.mode === "demo");
-  const live = result ? result.mode === "model" : status?.mode === "model";
-  const chip = fallback
-    ? "Demo mode · local fallback"
-    : result?.mode === "model" && result.model
-      ? `Live model · OpenAI ${result.model}`
-      : status?.mode === "model" && status.model
-        ? `Live model ready · OpenAI ${status.model}`
-        : status
-          ? "Demo mode · local rewrite"
-          : "Checking mode…";
-  const modeDetail = fallback
-    ? "The model was not used for this report. The text below is the local rewrite."
-    : live
-      ? "A key is set on the server. The report says a model wrote it only when that draft really used one."
-      : "No API key in use. The report is written on this computer from your rows. The same sheet always makes the same report.";
-
   const stale = Boolean(
-    result && (result.sourceCsv !== csv || result.client !== client.trim() || result.period !== period.trim()),
+    result &&
+      (result.sourceCsv !== csv ||
+        result.client !== client.trim() ||
+        result.period !== period.trim() ||
+        SECTIONS.some((section) => result.sourceContext[section.key] !== context[section.key])),
   );
 
   let parsed: { ok: true; sheet: SheetPreview } | { ok: false; message: string } | null = null;
@@ -107,7 +77,6 @@ export function Studio() {
 
   function clearSheetFlags() {
     setError(null);
-    setNotice(null);
     setFileProblem(null);
     setRevealProblem(false);
     setShowAllRows(false);
@@ -115,9 +84,7 @@ export function Studio() {
 
   async function writeReport(input: SheetInput) {
     setError(null);
-    setNotice(null);
     setResult(null);
-    setDraft(null);
     if (!input.csv.trim()) {
       setPhase("idle");
       if (fileProblem) {
@@ -143,19 +110,13 @@ export function Studio() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
       });
-      const data = (await response.json().catch(() => ({}))) as ReportResponse & { error?: string };
+      const data = (await response.json().catch(() => ({}))) as ReviewResponse & { error?: string };
       if (!response.ok) {
-        setError(data.error ?? "That did not work. Try the sample sheet.");
+        setError(data.error ?? "That did not work. Try the sample.");
         setPhase("idle");
         return;
       }
       setResult(data);
-      setDraft({
-        whatChanged: data.whatChanged,
-        whyItMatters: data.whyItMatters,
-        nextActions: data.nextActions,
-      });
-      setNotice(data.notice);
       setPhase("ready");
       setGeneration((value) => value + 1);
     } catch {
@@ -168,10 +129,11 @@ export function Studio() {
     setClient(SAMPLE_CLIENT);
     setPeriod(SAMPLE_PERIOD);
     setCsv(SAMPLE_CSV);
+    setContext(SAMPLE_CONTEXT);
     setOrigin({ label: "Sample sheet", csv: SAMPLE_CSV });
     setShowRaw(false);
     clearSheetFlags();
-    void writeReport({ csv: SAMPLE_CSV, client: SAMPLE_CLIENT, period: SAMPLE_PERIOD });
+    void writeReport({ csv: SAMPLE_CSV, client: SAMPLE_CLIENT, period: SAMPLE_PERIOD, context: SAMPLE_CONTEXT });
   }
 
   function onCsvChange(value: string) {
@@ -184,11 +146,9 @@ export function Studio() {
     setCsv("");
     setOrigin(null);
     setResult(null);
-    setDraft(null);
     setPhase("idle");
     setShowRaw(false);
     setError(null);
-    setNotice(null);
     setRevealProblem(false);
     setShowAllRows(false);
     setFileProblem({ label, message });
@@ -219,12 +179,10 @@ export function Studio() {
       setCsv(text);
       setOrigin({ label: file.name, csv: text });
       setResult(null);
-      setDraft(null);
       setPhase("idle");
       setShowRaw(false);
       setShowAllRows(false);
       setError(null);
-      setNotice(null);
       setFileProblem(null);
       setRevealProblem(!readable);
       requestFocus(readable ? "preview" : "problem");
@@ -255,7 +213,7 @@ export function Studio() {
           </a>
           <span className="chip">
             <i />
-            {chip}
+            No invented numbers
           </span>
         </header>
 
@@ -264,26 +222,33 @@ export function Studio() {
             <h1>Client Report Narrator</h1>
             <div className="hero-copy">
               <p className="deck">
-                Paste or upload one month of client numbers. Read what changed, why it matters, and what to do next.
-                Every figure comes from the sheet.
+                Prepare the monthly client review. Add your numbers and your notes. Get what changed, why it changed
+                with each reason sourced to a note, and what to do next.
               </p>
-              <p className="mode-detail">{modeDetail}</p>
+              <p className="mode-detail">
+                Numbers come only from your sheet. Reasons come only from your notes. If no note covers a move, the
+                review says the reason is unknown.
+              </p>
+              <button type="button" className="primary hero-cta" onClick={loadSample} disabled={busy}>
+                {busy ? "Drafting…" : "Try sample"}
+              </button>
             </div>
           </section>
 
           <div className="workspace">
             <form
-              id="sheet"
-              className="panel"
+              className="inputs"
               onSubmit={(event) => {
                 event.preventDefault();
-                void writeReport({ csv, client, period });
+                void writeReport({ csv, client, period, context });
               }}
             >
+            <section id="sheet" className="panel">
+              <p className="kicker">1 · Metrics</p>
               <h2>Your sheet</h2>
               <p className="lede" id="csv-help">
-                Choose a .csv with the columns channel, metric, last_month, and this_month. After it loads, check the
-                file name and the channels, then write the report.
+                Choose a .csv with the columns channel, metric, last_month, and this_month. The channel can be a market
+                or a campaign. After it loads, check the file name and the channels.
               </p>
 
               {problem ? (
@@ -311,10 +276,7 @@ export function Studio() {
                   />
                 </label>
                 <button type="button" className="secondary" onClick={loadSample} disabled={busy}>
-                  Load sample
-                </button>
-                <button type="submit" className="primary" disabled={busy}>
-                  {busy ? "Writing…" : "Write the report"}
+                  Try sample
                 </button>
               </div>
               <div className="field">
@@ -347,7 +309,7 @@ export function Studio() {
                     className="source-box"
                     value={csv}
                     onChange={(event) => onCsvChange(event.target.value)}
-                    placeholder={"channel,metric,last_month,this_month\nPaid search,Spend,3800,4200"}
+                    placeholder={"channel,metric,last_month,this_month\nEdinburgh - Generic,Spend,6200,4900"}
                     spellCheck={false}
                     wrap="soft"
                   />
@@ -365,6 +327,41 @@ export function Studio() {
                   {csv.trim() ? "Edit the CSV" : "Paste a CSV instead"}
                 </button>
               )}
+            </section>
+
+            <section id="context" className="panel">
+              <p className="kicker">2 · Context pack</p>
+              <h2>Your notes</h2>
+              <p className="lede">
+                This is where the why comes from. One note per line. Start a line with a channel name and a colon to
+                tie it to those rows, or with all: for the whole account.
+              </p>
+              {SECTIONS.map((section) => {
+                const empty = context[section.key].trim() === "";
+                return (
+                  <div className="field" key={section.key}>
+                    <label htmlFor={`ctx-${section.key}`}>{section.label}</label>
+                    <textarea
+                      id={`ctx-${section.key}`}
+                      className="context-box"
+                      value={context[section.key]}
+                      onChange={(event) => setContext({ ...context, [section.key]: event.target.value })}
+                      placeholder={section.placeholder}
+                      aria-describedby={`ctx-${section.key}-help`}
+                      spellCheck={false}
+                    />
+                    <p className={empty ? "help prompt" : "help"} id={`ctx-${section.key}-help`}>
+                      {empty ? section.prompt : section.help}
+                    </p>
+                  </div>
+                );
+              })}
+              <div className="actions">
+                <button type="submit" className="primary" disabled={busy}>
+                  {busy ? "Drafting…" : "Draft the review"}
+                </button>
+              </div>
+            </section>
             </form>
 
             <section className="stage" aria-live="polite">
@@ -373,36 +370,37 @@ export function Studio() {
                   {error}
                 </p>
               ) : null}
-              {notice && phase !== "working" ? <p className={fallback ? "banner" : "note"}>{notice}</p> : null}
               {stale ? (
-                <p className="note">The sheet has changed. Write the report again so every figure matches the rows above.</p>
+                <p className="note">
+                  The sheet or the notes have changed. Draft the review again so every line matches what you entered.
+                </p>
               ) : null}
               {phase === "working" ? (
                 <p className="reading" role="status">
                   <span className="pulse" />
-                  Reading the sheet…
+                  Reading the sheet and the notes…
                 </p>
               ) : null}
-              {result && draft ? (
-                <ReportView report={result} draft={draft} onChange={setDraft} />
+              {result ? (
+                <ReviewView key={generation} review={result} />
               ) : phase === "working" ? null : (
                 <div className="empty">
-                  <h2>The report shows up here</h2>
+                  <h2>The review shows up here</h2>
                   <p className="lede">
-                    Load the sample, paste a CSV, or choose a file. The page stays empty until you write the report.
+                    Tap Try sample to see a finished one, or add your own sheet and notes and draft it.
                   </p>
                   <div className="ghosts">
                     <div>
-                      <strong>What changed</strong>
-                      <span>Each metric, last month and this month, in plain sentences.</span>
+                      <strong>Snapshot and what moved</strong>
+                      <span>Your numbers, this month against last, with the biggest moves first.</span>
                     </div>
                     <div>
-                      <strong>Why it matters</strong>
-                      <span>Which move is the large one, using only these rows.</span>
+                      <strong>Why, with a source</strong>
+                      <span>Each reason is tagged campaign, seasonality, site, client note, or unknown.</span>
                     </div>
                     <div>
-                      <strong>Next actions</strong>
-                      <span>A short list you can edit and copy. Missing figures stay missing.</span>
+                      <strong>What&rsquo;s next</strong>
+                      <span>Three actions tied to those reasons. Select any line to see its evidence, edit it, then approve.</span>
                     </div>
                   </div>
                 </div>
@@ -413,9 +411,9 @@ export function Studio() {
           <footer className="site-foot">
             <div>
               <strong>Client Report Narrator</strong>
-              <p>A portfolio demo. The report stays on this page. It is not sent to a client.</p>
+              <p>A portfolio demo. The review stays on this page. It is not sent to a client.</p>
             </div>
-            <p>The number list under the report is there so you can check every figure against the sheet.</p>
+            <p>Select any line in the review to see the sheet row or note behind it.</p>
           </footer>
         </main>
       </div>
@@ -477,7 +475,7 @@ function SheetPreview({
         {formatCount(sheet.rowCount, "row")} · {formatCount(sheet.channels.length, "channel")}
       </p>
       <p className="channel-line">{sheet.channels.join(", ")}</p>
-      <p className="help">Next, tap Write the report. Replace the file if these are the wrong rows.</p>
+      <p className="help">Next, add your notes and tap Draft the review. Replace the file if these are the wrong rows.</p>
       <ul className="preview-list">
         {groups.map((group) => (
           <li key={group.key}>
@@ -517,7 +515,7 @@ function ColumnGuide() {
       <dl className="example-grid">
         <div>
           <dt>channel</dt>
-          <dd>Paid search</dd>
+          <dd>Edinburgh - Generic</dd>
         </div>
         <div>
           <dt>metric</dt>
@@ -525,11 +523,11 @@ function ColumnGuide() {
         </div>
         <div>
           <dt>last_month</dt>
-          <dd>3800</dd>
+          <dd>6200</dd>
         </div>
         <div>
           <dt>this_month</dt>
-          <dd>4200</dd>
+          <dd>4900</dd>
         </div>
       </dl>
       <p className="help">

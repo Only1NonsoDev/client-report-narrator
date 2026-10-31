@@ -18,7 +18,7 @@ const sans = Nunito({
 export const metadata: Metadata = {
   title: "Client Report Narrator",
   description:
-    "Paste one month of client numbers and read a plain-English report. Demo mode needs no API key, and every figure comes from the sheet.",
+    "Prepare the monthly client review: what changed, why with each reason sourced to your notes, and what to do next. Every number comes from the sheet.",
 };
 
 export const viewport: Viewport = {

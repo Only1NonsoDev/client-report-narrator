@@ -53,20 +53,28 @@ export function inventedNumbers(text: string, allowed: Set<string>): string[] {
   return numbersIn(text).filter((token) => !allowed.has(token));
 }
 
-export function visibleReportText(parts: {
-  clientLine: string;
-  periodLine: string;
-  whatChanged: string;
-  whyItMatters: string;
-  nextActions: string;
-  audit: string;
-}): string {
-  return [
-    parts.clientLine,
-    parts.periodLine,
-    parts.whatChanged,
-    parts.whyItMatters,
-    parts.nextActions,
-    parts.audit,
-  ].join("\n");
+const QUOTED = /[“"]([^”"]*)[”"]/g;
+
+/** Numbers inside a quoted note are the user's own words, so they are checked against the context pack, not the sheet. */
+export function stripQuotes(text: string): string {
+  return text.replace(QUOTED, " ");
+}
+
+export function quotesIn(text: string): string[] {
+  return [...text.matchAll(QUOTED)].map((match) => match[1].trim()).filter(Boolean);
+}
+
+/** Problems with a sentence: numbers outside quotes that are not on the sheet, and quotes that are not in the context pack. */
+export function sentenceProblems(text: string, allowed: Set<string>, quoteSource: string): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const token of inventedNumbers(stripQuotes(text), allowed)) {
+    if (seen.has(token)) continue;
+    seen.add(token);
+    problems.push(`${token} is not a number on the sheet.`);
+  }
+  for (const quote of quotesIn(text)) {
+    if (!quoteSource.includes(quote)) problems.push(`The quote "${quote}" is not in the context pack.`);
+  }
+  return problems;
 }
