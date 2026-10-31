@@ -1,100 +1,85 @@
-**Live preview:** https://client-report-narrator-only1nonsodev.vercel.app
-# Client Report Narrator
+**Live preview:** https://client-report-narrator-only1nonsodev.vercel.app (shows whatever is deployed from `main`)
 
-A marketer often has a spreadsheet of one month and a client who wants a paragraph, not a grid. This is a small web page for that job.
+# Client Report Narrator v2
 
-You paste a CSV, or upload one, with a few channels or campaigns. Each row has a metric, last month, and this month. The page writes a short report in plain English:
+An account manager preparing a monthly client review needs more than "spend went up 10%". They need what changed, why, and what to do next, with the reason traceable to something real.
 
-- what changed versus the previous period
-- why that change matters, using only these rows
-- what to do next
+You give the page two things:
 
-It is a portfolio demo. It does not email anyone, and it is not a live agency tool.
+1. **Metrics**: a CSV of this month against last month.
+2. **Context pack**: your campaign change log, seasonality and events, site and SEO notes, and client goals. One note per line.
 
-Every number in the report comes from the sheet, or from the change between the two months on that row. The change is this month minus last month. The percent is that change divided by last month, rounded to one decimal place. If a cell is blank, the report says the figure is missing. If last month is 0, it says the percent is missing. It does not fill the gap, and it does not add an industry average, a goal, or any other statistic.
+It drafts a monthly strategic review:
 
-## Run it
+1. **Snapshot**: every row, this month against last, numbers only from the sheet.
+2. **What moved**: the four biggest percent changes.
+3. **Why**: each driver tagged `campaign`, `seasonality`, `site`, `client note`, or `unknown`, and quoted from your notes.
+4. **What's next**: three actions, each tied to a line above.
+5. **Evidence**: select any line to see the sheet row and the note behind it.
+6. **Edit and approve**: edit any line, approve, then copy or download markdown.
 
-You need [Node.js](https://nodejs.org/) 20 or newer. In a terminal:
+It is a portfolio demo. It does not email anyone and does not connect to ad platforms.
+
+## Try it
 
 ```bash
-node -v
-```
-
-If that prints `v20` or higher, install and start the app from this folder:
-
-```bash
+node -v        # needs v20 or higher
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) and tap **Try sample**. The sample is a made-up hotel client, Northline Hotels, with two markets (Edinburgh, Manchester), a generic and a brand campaign in each, and spend, bookings, ROAS and CPA. The notes include a paused ad group, a budget shift, a new responsive search ad, a half-term demand peak, a landing page launch, and a booking-engine outage.
 
-On a phone, the form is on top and the report stacks under it. This is that layout with the sample loaded:
+Layout: on a laptop the sheet, notes and review sit side by side. On a phone they stack. Same address for both. To open it on a phone on the same Wi-Fi: `npm run dev -- --hostname 0.0.0.0`.
 
-![Sample report on a phone-width screen](docs/phone-layout.png)
+## The guardrails
 
-Buttons are at least 48px tall, and the page does not scroll sideways. On a laptop the same page puts the sheet on the left and the report on the right, with the shorter sections beside each other. It is still this address. On the same Wi-Fi, run `npm run dev -- --hostname 0.0.0.0` and visit `http://` plus your computer’s address plus `:3000`.
+- **No number that is not on the sheet.** Sentences contain only sheet values, the change between the two months, and the percent (change divided by last month, one decimal). If a cell is blank, the review says it is missing. If last month is 0, it says the percent is missing.
+- **No reason that is not in the context pack.** A reason is always a verbatim quote of one of your notes, in curly quotes. If no note covers a move, the line is tagged `unknown` and says what to check. Numbers inside a quote (such as dates) are your own words, so they are checked against your notes, not the sheet.
+- **Missing context is shown.** With no campaign notes the page says **Add campaign notes to unlock why**, and each why line is `unknown`. Empty seasonality, site and goals sections get a prompt too.
+- **Edits are checked.** If you edit a line and add a number that is not on the sheet, or a quote that is not in your notes, the line cannot be saved and the review cannot be approved.
 
-To check the report logic without the browser:
+There is no AI model in v2. The review is written by fixed rules, so the same inputs always give the same review. (v1 had an optional OpenAI rewrite; it was removed because a rewrite could not keep the per-sentence evidence honest.)
 
-```bash
-npm test
+## Writing the context pack
+
+One note per line in the section it belongs to. To tie a note to certain rows, start the line with a channel name and a colon. The match ignores case and dashes and works on part of a name:
+
+```
+Edinburgh - Generic: Paused the broad-match ad group on 8 Oct
+Manchester: Moved weekly budget from Brand to Generic on 14 Oct
+all: Client priority this quarter is Manchester bookings
 ```
 
-## Try the sample
+- `Edinburgh - Generic` reaches only that channel. `Manchester` reaches every Manchester channel. `all:` or no prefix reaches the whole account.
+- A short label that matches no channel (for example a typo) is flagged and not used as a reason.
+- Each move shows up to three notes, channel-specific notes first.
+- Limits: 25 lines per section, 240 characters per line.
 
-Click **Load sample**. That one tap fills a small month for a made-up client, Northline Studio, and writes the report.
-
-The sample has paid search, email, and organic social. Organic social impressions have a blank last month on purpose. The report says that figure is missing. It does not guess a change.
-
-You can edit the three parts of the report, then use **Copy report**.
-
-You can also paste your own CSV or upload a file. Use these column names:
+## Metrics CSV
 
 ```csv
 channel,metric,last_month,this_month
-Paid search,Spend,3800,4200
+Edinburgh - Generic,Spend,6200,4900
 ```
 
-`campaign`, `kpi`, `previous`, and `current` are accepted as other names for the same columns. Leave a cell blank when you do not have the number.
+`channel` can be a market or a campaign. `campaign`, `kpi`, `previous`, and `current` are accepted as other column names. Leave a cell blank when you do not have the number. Up to 40 rows.
 
-## Demo mode and a real model later
-
-**Demo mode is the default.** The page writes the report with a fixed set of rules on your computer. No account, no API key, and no request to an AI provider. The same sheet always produces the same report. The screen says **Demo mode · local rewrite**. It does not pretend ChatGPT, or any other model, wrote the text.
-
-A real model is optional. Copy `.env.example` to `.env.local` and set:
+## Check it
 
 ```bash
-OPENAI_API_KEY=sk-your-key-here
-OPENAI_MODEL=gpt-4o-mini
-```
-
-Restart `npm run dev`. The chip changes when a key is present. If the model replies with a number that is not in the sheet, or it skips a missing figure, the page throws that reply away and shows the local report instead. The screen tells you when that happens.
-
-`.env.local` is listed in `.gitignore`. Do not commit a key.
-
-## Sample sheet
-
-These rows are the built-in sample. They are not a real client’s results.
-
-```csv
-channel,metric,last_month,this_month
-Paid search,Spend,3800,4200
-Paid search,Clicks,1720,1860
-Paid search,Leads,51,64
-Email,Sends,11800,12400
-Email,Opens,2950,3100
-Email,Leads,79,88
-Organic social,Clicks,980,910
-Organic social,Leads,19,22
-Organic social,Impressions,,45200
+npm test         # guardrail and logic tests
+npm run typecheck
+npm run build
 ```
 
 ## Project layout
 
-- `app/page.tsx` is the screen.
-- `app/api/report/route.ts` writes the report. Demo mode does not call a model.
-- `lib/narrate.ts` is the local rewrite.
-- `lib/sample.ts` is the built-in sheet.
-- `lib/narrate.test.ts` checks that the report does not invent numbers.
+- `lib/review.ts` builds the review: movers, sourced drivers, actions.
+- `lib/context.ts` reads the context pack and matches notes to rows.
+- `lib/ground.ts` number and quote checks, used for both drafting and edits.
+- `lib/markdown.ts` the export.
+- `lib/sample.ts` the Northline Hotels sample.
+- `app/api/report/route.ts` the JSON endpoint behind the page.
+- `components/studio.tsx` the inputs, `components/report-view.tsx` the review, evidence, edit and approve.
+- `lib/review.test.ts` tests.
